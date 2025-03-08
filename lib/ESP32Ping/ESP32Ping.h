@@ -19,6 +19,7 @@
 
 #ifndef ESP32PING_H
 #define ESP32PING_H
+#define ENABLE_DEBUG_PING
 
 #include <Arduino.h>
 #include <WiFi.h>
