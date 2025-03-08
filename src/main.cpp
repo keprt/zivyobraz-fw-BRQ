@@ -480,6 +480,9 @@ QRCode qrcode;
 // TWI/I2C library
 #include <Wire.h>
 
+//Include ping
+#include <ESP32Ping.h>
+
 #ifdef ES3ink
   #include <Adafruit_NeoPixel.h>
   Adafruit_NeoPixel pixel(1, RGBledPin, NEO_GRB + NEO_KHZ800);
@@ -565,6 +568,7 @@ float d_volt; // indoor battery voltage
 RTC_DATA_ATTR uint64_t timestamp = 0;
 RTC_DATA_ATTR uint8_t notConnectedToAPCount = 0;
 uint64_t timestampNow = 1; // initialize value for timestamp from server
+const char* remote_host = "www.google.com";
 
 void setEPaperPowerOn(bool on)
 {
@@ -1714,6 +1718,8 @@ void setup()
   Serial.begin(115200);
   Serial.println("Starting firmware for Zivy Obraz service");
 
+  
+
 #ifdef ES3ink
   // Battery voltage reading via PMOS switch with series capacitor to gate.
   // can be read right after High->Low transition of enableBattery
@@ -1764,6 +1770,19 @@ void setup()
   // Successfully connected to Wi-Fi?
   if(notConnectedToAPCount == 0)
   {
+
+  Serial.println();
+  Serial.print("WiFi connected with ip ");  
+  Serial.println(WiFi.localIP());
+
+  Serial.print("Pinging host ");
+  Serial.println(remote_host);
+
+  if(Ping.ping(remote_host)) {
+    Serial.println("Ping Success!!");
+  } else {
+    Serial.println("Ping Error :(");
+  }
     // Do we need to update the screen?
     if (checkForNewTimestampOnServer(client))
     {
