@@ -30,7 +30,7 @@
 // Uncomment for correct board
 /////////////////////////////////
 
-//#define ESPink_V2
+#define ESPink_V2
 //#define ESPink_V3
 //#define ESP32S3Adapter
 //#define ES3ink
@@ -44,7 +44,7 @@
 // Supported sensors: SHT40/41/45, SCD40/41, BME280 
 //////////////////////////////////////////////////////////////
 
-//#define SENSOR
+#define SENSOR
 
 //////////////////////////////////////////////////////////////
 // Uncomment correct color capability of your ePaper display
@@ -52,7 +52,7 @@
 
 //#define TYPE_BW // black and white
 //#define TYPE_3C // 3 colors - black, white and red/yellow
-//#define TYPE_4C // 4 colors - black, white, red and yellow
+#define TYPE_4C // 4 colors - black, white, red and yellow
 //#define TYPE_GRAYSCALE // grayscale - 4 colors
 //#define TYPE_7C // 7 colors
 
@@ -101,7 +101,7 @@
 // 4C
 //#define D_GDEY0213F51   // 128x250, 2.13"
 //#define D_GDEY0266F51H  // 184x460, 2.66"
-//#define D_GDEY029F51H   // 168x384, 2.9"
+#define D_GDEY029F51H   // 168x384, 2.9"
 //#define D_WS3004YRBW    // 168x400, 3.00"
 //#define D_GDEY0420F51   // 400x300, 4.2"
 //#define D_WS437YRBW     // 512x368, 4.37"
