@@ -219,17 +219,17 @@
 
 // 2 colors (Black and White)
 #ifdef TYPE_BW
-  #include <GxEPD2_BW.h>
+  #include "GxEPD2_BW.h"
 static const char *defined_color_type = "BW";
 
 // 3 colors (Black, White and Red/Yellow)
 #elif defined TYPE_3C
-  #include <GxEPD2_3C.h>
+  #include "GxEPD2_3C.h"
 static const char *defined_color_type = "3C";
 
 // 4 colors (Black, White, Red and Yellow)
 #elif defined TYPE_4C
-  #include <GxEPD2_4C.h>
+  #include "GxEPD2_4C.h"
 static const char *defined_color_type = "4C";
 
 // 4 colors (Grayscale - Black, Darkgrey, Lightgrey, White) (https://github.com/ZinggJM/GxEPD2_4G)
@@ -240,7 +240,7 @@ static const char *defined_color_type = "4G";
 
 // 7 colors
 #elif defined TYPE_7C
-  #include <GxEPD2_7C.h>
+  #include "GxEPD2_7C.h"
 static const char *defined_color_type = "7C";
 #else
   #error "ePaper type not defined!"
@@ -466,7 +466,6 @@ GxEPD2_7C<GxEPD2_730c_GDEP073E01, GxEPD2_730c_GDEP073E01::HEIGHT / 4> display(Gx
 // ADC reading
 #include <ESP32AnalogRead.h>
 // Font
-#include <gfxfont.h>
 //#include "fonts/OpenSansSB_12px.h"
 #include "fonts/OpenSansSB_14px.h"
 #include "fonts/OpenSansSB_16px.h"
@@ -631,7 +630,7 @@ float getBatteryVoltage()
 
   lipo.begin();
 
-  //lipo.enableDebugging(); // Uncomment this line to enable helpful debug messages on Serial
+  lipo.enableDebugging(); // Uncomment this line to enable helpful debug messages on Serial
 
   // Read and print the reset indicator
   Serial.print(F("Reset Indicator was: "));
@@ -1021,15 +1020,6 @@ uint8_t safe_read(WiFiClient &client)
   return ret;
 }
 
-// read one byte safely from WiFiClient, wait a while if data are not available immediately
-// if byte is not read, set valid to false
-uint8_t safe_read_valid(WiFiClient &client,bool *valid)
-{
-  uint8_t ret;
-  *valid=read8n(client, &ret, 1) == 1;  // signalize not valid reading when not all bytes are read
-  return ret;
-}
-
 uint16_t read16(WiFiClient &client)
 {
   // BMP data is stored little-endian, same as Arduino.
@@ -1109,10 +1099,11 @@ bool createHttpRequest(WiFiClient &client, bool &connStatus, bool checkTimestamp
   while (client.connected())
   {
     String line = client.readStringUntil('\n');
-    //Serial.println(line);
+    Serial.println("headers content");
+    Serial.println(line);
 
     if (checkTimestamp)
-    {
+    { 
       // If line starts with "Timestamp", put it into the timestamp variable
       if (line.startsWith("Timestamp"))
       {
@@ -1162,8 +1153,8 @@ bool createHttpRequest(WiFiClient &client, bool &connStatus, bool checkTimestamp
   }
 
   // For debug purposes - print out the whole response
-  /*
-  Serial.println("Byte by byte:");
+  
+  /* Serial.println("Byte by byte:");
 
   while (client.connected() || client.available()) {
     if (client.available()) {
@@ -1281,13 +1272,6 @@ bool checkForNewTimestampOnServer(WiFiClient &client)
 #endif
 
   return createHttpRequest(client, connection_ok, true, extraParams);
-}
-
-void print_error_reading(uint32_t bytes_read)
-{
-  // print error message when reading bitmap data from server failed
-  Serial.print("Client got disconnected after bytes:");
-  Serial.println(bytes_read);
 }
 
 void readBitmapData(WiFiClient &client)
@@ -1586,6 +1570,9 @@ void readBitmapData(WiFiClient &client)
     // Z1 - 1 byte for color, 1 byte for number of repetition
     // Z3 - 2 bits for color, 6 bits for number of repetition
     // Z3 - 3 bits for color, 5 bits for number of repetition
+    //delay(1000);
+    //delay(1000); //test delay
+    
     if (header == 0x315A) Serial.println("Got format Z1, processing");
     else if (header == 0x325A) Serial.println("Got format Z2, processing");
     else Serial.println("Got format Z3, processing");
@@ -1623,36 +1610,22 @@ void readBitmapData(WiFiClient &client)
 
         if (!(client.connected() || client.available()))
         {
-          print_error_reading(bytes_read);
+          Serial.print("Client got disconnected after bytes:");
+          Serial.println(bytes_read);
           break;
         }
 
         // Z1
         if (header == 0x315A)
         {
-          pixel_color = safe_read_valid(client,&valid);
-          if (!valid)
-          {
-            print_error_reading(bytes_read);
-            break;
-          }
-          count = safe_read_valid(client,&valid);
-          if (!valid)
-          {
-            print_error_reading(bytes_read);
-            break;
-          }
+          pixel_color = safe_read(client);
+          count = safe_read(client);
           bytes_read += 2;
         }
         else if (header == 0x325A)
         {
           // Z2
-          compressed = safe_read_valid(client,&valid);
-          if (!valid)
-          {
-            print_error_reading(bytes_read);
-            break;
-          }
+          compressed = safe_read(client);
           count = compressed & 0b00111111;
           pixel_color = (compressed & 0b11000000) >> 6;
           bytes_read++;
@@ -1660,12 +1633,7 @@ void readBitmapData(WiFiClient &client)
         else if (header == 0x335A)
         {
           // Z3
-          compressed = safe_read_valid(client,&valid);
-          if (!valid)
-          {
-            print_error_reading(bytes_read);
-            break;
-          }
+          compressed = safe_read(client);
           count = compressed & 0b00011111;
           pixel_color = (compressed & 0b11100000) >> 5;
           bytes_read++;
@@ -1699,7 +1667,7 @@ void readBitmapData(WiFiClient &client)
         }
 
         // Debug
-        /*
+        
         if (bytes_read < 20)
         {
           Serial.print("count: "); Serial.print(count); Serial.print(" pixel: "); Serial.println(color);
