@@ -483,6 +483,9 @@ QRCode qrcode;
 //Include ping
 #include <ESP32Ping.h>
 
+//Inclue json
+#include <ArduinoJson.h>
+
 #ifdef ES3ink
   #include <Adafruit_NeoPixel.h>
   Adafruit_NeoPixel pixel(1, RGBledPin, NEO_GRB + NEO_KHZ800);
@@ -569,6 +572,10 @@ RTC_DATA_ATTR uint64_t timestamp = 0;
 RTC_DATA_ATTR uint8_t notConnectedToAPCount = 0;
 uint64_t timestampNow = 1; // initialize value for timestamp from server
 const char* remote_host = "www.google.com";
+
+//https://www.idsjmk.cz/api/departures/busstop-by-name?busStopName=Chvalovka
+// String input;
+JsonDocument doc;
 
 void setEPaperPowerOn(bool on)
 {
@@ -1043,6 +1050,88 @@ uint32_t read32(WiFiClient &client)
   ((uint8_t *)&result)[3] = safe_read(client); // MSB
   return result;
 }
+
+
+void readIDSJMK(void)
+{
+
+  Serial.println("IDSJMK");
+  //https://www.idsjmk.cz/api/departures/busstop-by-name?busStopName=Chvalovka
+
+  // String input;
+
+String input = "{\"stops\":[{\"stop\":{\"id\":133,\"number\":1185,\"zone\":101,\"fullName\":\"Brno, Chvalovka\",\"chapsName\":\"Chvalovka\",\"busStopSign\":[]},\"signs\":[{\"busStopSign\":{\"id\":322,\"busStopId\":133,\"number\":1,\"description\":\">Žebětín\",\"coordinates\":{\"lng\":16.499512166666666,\"lat\":49.214783333333337},\"busStopSignBusStopTransportlink\":[],\"busStop\":null},\"departures\":[{\"link\":\"N98\",\"platform\":\"\",\"destinationStop\":\"Bartolomějská\",\"time\":\"♿1min\",\"isOnline\":true},{\"link\":\"N98\",\"platform\":\"\",\"destinationStop\":\"Bartolomějská\",\"time\":\"♿00:01\",\"isOnline\":true},{\"link\":\"N98\",\"platform\":\"\",\"destinationStop\":\"Bartolomějská\",\"time\":\"♿00:30\",\"isOnline\":true}]},{\"busStopSign\":{\"id\":323,\"busStopId\":133,\"number\":2,\"description\":\">Bystrc, město\",\"coordinates\":{\"lng\":16.500086166666666,\"lat\":49.214919833333333},\"busStopSignBusStopTransportlink\":[],\"busStop\":null},\"departures\":[{\"link\":\"N98\",\"platform\":\"\",\"destinationStop\":\"Mariánské údolí\",\"time\":\"♿23:51\",\"isOnline\":true},{\"link\":\"N98\",\"platform\":\"\",\"destinationStop\":\"Mariánské údolí\",\"time\":\"♿00:22\",\"isOnline\":true}]}],\"infoText\":[\"VÝLUKA ČERNOVICKÁ: Z důvodu stavebních prací je zrušena obsluha zastávek Mariánské náměstí (49, E50, N94) a Mírová (49, N94) ve směru do Černovic.\"]}],\"news\":\"\"}";
+
+Serial.println("IDSJMK Json:");
+Serial.println(input);
+DeserializationError error = deserializeJson(doc, input);
+
+if (error) {
+  Serial.print("deserializeJson() failed: ");
+  Serial.println(error.c_str());
+  return;
+}
+
+JsonObject stops_0 = doc["stops"][0];
+
+JsonObject stops_0_stop = stops_0["stop"];
+int stops_0_stop_id = stops_0_stop["id"]; // 133
+int stops_0_stop_number = stops_0_stop["number"]; // 1185
+int stops_0_stop_zone = stops_0_stop["zone"]; // 101
+const char* stops_0_stop_fullName = stops_0_stop["fullName"]; // "Brno, Chvalovka"
+const char* stops_0_stop_chapsName = stops_0_stop["chapsName"]; // "Chvalovka"
+
+JsonObject stops_0_signs_0_busStopSign = stops_0["signs"][0]["busStopSign"];
+int stops_0_signs_0_busStopSign_id = stops_0_signs_0_busStopSign["id"]; // 322
+int stops_0_signs_0_busStopSign_busStopId = stops_0_signs_0_busStopSign["busStopId"]; // 133
+int stops_0_signs_0_busStopSign_number = stops_0_signs_0_busStopSign["number"]; // 1
+const char* stops_0_signs_0_busStopSign_description = stops_0_signs_0_busStopSign["description"];
+
+double stops_0_signs_0_busStopSign_coordinates_lng = stops_0_signs_0_busStopSign["coordinates"]["lng"];
+double stops_0_signs_0_busStopSign_coordinates_lat = stops_0_signs_0_busStopSign["coordinates"]["lat"];
+
+// stops_0_signs_0_busStopSign["busStop"] is null
+
+for (JsonObject stops_0_signs_0_departure : stops_0["signs"][0]["departures"].as<JsonArray>()) {
+
+  const char* stops_0_signs_0_departure_link = stops_0_signs_0_departure["link"]; // "N98", "N98", "N98"
+  const char* stops_0_signs_0_departure_platform = stops_0_signs_0_departure["platform"]; // nullptr, ...
+  const char* stops_0_signs_0_departure_destinationStop = stops_0_signs_0_departure["destinationStop"];
+  const char* stops_0_signs_0_departure_time = stops_0_signs_0_departure["time"]; // "♿1min", "♿00:01", ...
+  bool stops_0_signs_0_departure_isOnline = stops_0_signs_0_departure["isOnline"]; // true, true, true
+
+}
+
+JsonObject stops_0_signs_1_busStopSign = stops_0["signs"][1]["busStopSign"];
+int stops_0_signs_1_busStopSign_id = stops_0_signs_1_busStopSign["id"]; // 323
+int stops_0_signs_1_busStopSign_busStopId = stops_0_signs_1_busStopSign["busStopId"]; // 133
+int stops_0_signs_1_busStopSign_number = stops_0_signs_1_busStopSign["number"]; // 2
+const char* stops_0_signs_1_busStopSign_description = stops_0_signs_1_busStopSign["description"];
+
+double stops_0_signs_1_busStopSign_coordinates_lng = stops_0_signs_1_busStopSign["coordinates"]["lng"];
+double stops_0_signs_1_busStopSign_coordinates_lat = stops_0_signs_1_busStopSign["coordinates"]["lat"];
+
+// stops_0_signs_1_busStopSign["busStop"] is null
+
+for (JsonObject stops_0_signs_1_departure : stops_0["signs"][1]["departures"].as<JsonArray>()) {
+
+  const char* stops_0_signs_1_departure_link = stops_0_signs_1_departure["link"]; // "N98", "N98"
+  const char* stops_0_signs_1_departure_platform = stops_0_signs_1_departure["platform"]; // nullptr, ...
+  const char* stops_0_signs_1_departure_destinationStop = stops_0_signs_1_departure["destinationStop"];
+  const char* stops_0_signs_1_departure_time = stops_0_signs_1_departure["time"]; // "♿23:51", "♿00:22"
+  bool stops_0_signs_1_departure_isOnline = stops_0_signs_1_departure["isOnline"]; // true, true
+
+}
+
+const char* stops_0_infoText_0 = stops_0["infoText"][0]; // "VÝLUKA ČERNOVICKÁ: Z důvodu stavebních ...
+
+const char* news = doc["news"]; // nullptr
+
+Serial.println("IDSJMK Json infotext:");
+Serial.println(stops_0_infoText_0);
+
+}
+
 
 bool createHttpRequest(WiFiClient &client, bool &connStatus, bool checkTimestamp, const String &extraParams)
 {
@@ -1783,6 +1872,9 @@ void setup()
   } else {
     Serial.println("Ping Error :(");
   }
+
+  readIDSJMK();
+
     // Do we need to update the screen?
     if (checkForNewTimestampOnServer(client))
     {
