@@ -1744,6 +1744,7 @@ void setup()
 
   // ePaper init
   displayInit();
+  Serial.println("displayInit");
 
   // Battery voltage measurement
   d_volt = getBatteryVoltage();
@@ -1768,6 +1769,7 @@ void setup()
     {
       // Enable power supply for ePaper
       setEPaperPowerOn(true);
+      Serial.println("setEPaperPowerOn");
       delay(500);
 
       // Get that lovely bitmap and put it on your gorgeous grayscale ePaper screen!
@@ -1775,7 +1777,9 @@ void setup()
       // If you can't use whole display at once, there will be multiple pages and therefore
       // requests and downloads of one bitmap from server, since you have to always write whole image
       display.setFullWindow();
+      Serial.println("setFullWindow");
       display.firstPage();
+      Serial.println("firstPage");
       do
       {
         readBitmapData(client);
@@ -1783,6 +1787,7 @@ void setup()
 
       delay(100);
       // Disable power supply for ePaper
+      Serial.println("setEPaperPowerOff");
       setEPaperPowerOn(false);
     }
 
