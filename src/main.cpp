@@ -576,6 +576,9 @@ const char* remote_host = "www.google.com";
 //https://www.idsjmk.cz/api/departures/busstop-by-name?busStopName=Chvalovka
 // String input;
 JsonDocument doc;
+//const char *hostJMK = "www.idsjmk.cz";
+const char *hostJMK = "https://www.idsjmk.cz";
+const char *urlJMK = "api/departures/busstop-by-name?busStopName=Chvalovka";
 
 void setEPaperPowerOn(bool on)
 {
@@ -1052,13 +1055,92 @@ uint32_t read32(WiFiClient &client)
 }
 
 
-void readIDSJMK(void)
+//void readIDSJMK(void)
+bool readIDSJMK(WiFiClient &client, bool &connStatus)
 {
 
   Serial.println("IDSJMK");
+  String url = "";
   //https://www.idsjmk.cz/api/departures/busstop-by-name?busStopName=Chvalovka
+  //safe_read(client);
+  client.connect(hostJMK, 80);
 
   // String input;
+    
+  Serial.print("connecting to ");
+  Serial.println(hostJMK);
+  
+  // Let's try twice
+  /*for (uint8_t client_reconnect = 0; client_reconnect < 3; client_reconnect++)
+    {
+      if (!client.connect(hostJMK, 80))
+      {
+        Serial.println("connection failed");
+        if (client_reconnect == 2)
+        {
+          deepSleepTime = defaultDeepSleepTime;  
+          delay(500);
+        }        
+      }
+    }*/
+    
+  //client.connect(hostJMK, 80);
+  Serial.println(String("GET ") + "/" + urlJMK + " HTTP/1.1\r\n" + "Host: " + hostJMK + "\r\n" + "Connection: close\r\n\r\n");
+  client.print(String("GET ") + "/" + urlJMK + " HTTP/1.1\r\n" + "Host: " + hostJMK + "\r\n" + "Connection: close\r\n\r\n");
+  Serial.println("IDSJMK request sent");
+  
+    // Workaroud for timeout
+    uint32_t timeout = millis();
+    while (client.available() == 0)
+    {
+      if (millis() - timeout > 10000)
+      {
+        Serial.println(">>> Client Timeout !");
+        client.stop();        
+        return false;
+      }
+    }
+  
+    bool gotTimestamp = false;
+  
+    while (client.connected())
+    {
+      String line = client.readStringUntil('\n');
+      Serial.println("headers content");
+      Serial.println(line);
+  
+      
+      if (!connStatus)
+      {
+        connStatus = line.startsWith("HTTP/1.1 200 OK");
+        Serial.println(line);
+      }
+      if (line == "\r")
+      {
+        Serial.println("headers received");
+        break;
+      }
+    }
+  
+    // Is there a problem? Fallback to default deep sleep time to try again soon
+    if (!connStatus)
+    {
+      deepSleepTime = defaultDeepSleepTime;
+      return false;
+    }
+  
+    // For debug purposes - print out the whole response
+    
+     Serial.println("Byte by byte:");
+  
+    while (client.connected() || client.available()) {
+      if (client.available()) {
+        char c = client.read();  // Read one byte
+        Serial.print(c);         // Print the byte to the serial monitor
+      }
+    }
+    //client.stop();
+  
 
 String input = "{\"stops\":[{\"stop\":{\"id\":133,\"number\":1185,\"zone\":101,\"fullName\":\"Brno, Chvalovka\",\"chapsName\":\"Chvalovka\",\"busStopSign\":[]},\"signs\":[{\"busStopSign\":{\"id\":322,\"busStopId\":133,\"number\":1,\"description\":\">Žebětín\",\"coordinates\":{\"lng\":16.499512166666666,\"lat\":49.214783333333337},\"busStopSignBusStopTransportlink\":[],\"busStop\":null},\"departures\":[{\"link\":\"N98\",\"platform\":\"\",\"destinationStop\":\"Bartolomějská\",\"time\":\"♿1min\",\"isOnline\":true},{\"link\":\"N98\",\"platform\":\"\",\"destinationStop\":\"Bartolomějská\",\"time\":\"♿00:01\",\"isOnline\":true},{\"link\":\"N98\",\"platform\":\"\",\"destinationStop\":\"Bartolomějská\",\"time\":\"♿00:30\",\"isOnline\":true}]},{\"busStopSign\":{\"id\":323,\"busStopId\":133,\"number\":2,\"description\":\">Bystrc, město\",\"coordinates\":{\"lng\":16.500086166666666,\"lat\":49.214919833333333},\"busStopSignBusStopTransportlink\":[],\"busStop\":null},\"departures\":[{\"link\":\"N98\",\"platform\":\"\",\"destinationStop\":\"Mariánské údolí\",\"time\":\"♿23:51\",\"isOnline\":true},{\"link\":\"N98\",\"platform\":\"\",\"destinationStop\":\"Mariánské údolí\",\"time\":\"♿00:22\",\"isOnline\":true}]}],\"infoText\":[\"VÝLUKA ČERNOVICKÁ: Z důvodu stavebních prací je zrušena obsluha zastávek Mariánské náměstí (49, E50, N94) a Mírová (49, N94) ve směru do Černovic.\"]}],\"news\":\"\"}";
 
@@ -1069,7 +1151,7 @@ DeserializationError error = deserializeJson(doc, input);
 if (error) {
   Serial.print("deserializeJson() failed: ");
   Serial.println(error.c_str());
-  return;
+  return false;
 }
 
 JsonObject stops_0 = doc["stops"][0];
@@ -1130,6 +1212,9 @@ const char* news = doc["news"]; // nullptr
 Serial.println("IDSJMK Json infotext:");
 Serial.println(stops_0_infoText_0);
 
+client.stop();
+return true;
+
 }
 
 
@@ -1169,6 +1254,9 @@ bool createHttpRequest(WiFiClient &client, bool &connStatus, bool checkTimestamp
 
   Serial.print("requesting URL: ");
   Serial.println(String("http://") + host + "/" + url);
+  Serial.println(String("GET ") + "/" + url + " HTTP/1.1\r\n" +
+               "Host: " + host + "\r\n" +
+               "Connection: close\r\n\r\n");
   client.print(String("GET ") + "/" + url + " HTTP/1.1\r\n" +
                "Host: " + host + "\r\n" +
                "Connection: close\r\n\r\n");
@@ -1873,8 +1961,10 @@ void setup()
     Serial.println("Ping Error :(");
   }
 
-  readIDSJMK();
+  bool connection_ok = false;
 
+  readIDSJMK(client, connection_ok);  
+  
     // Do we need to update the screen?
     if (checkForNewTimestampOnServer(client))
     {
